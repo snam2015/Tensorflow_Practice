@@ -15,6 +15,13 @@ parser.add_argument('--train_steps', default=100, type=int,
 
 def main(argv):
     args = parser.parse_args(argv[1:])
+    
+    my_checkpointing_config = tf.estimator.RunConfig(
+        save_checkpoints_secs = 20*60,
+        keep_checkpoint_max = 10
+        )
+
+
 
     def load_data(label_name='Species'):
         train_path= tf.keras.utils.get_file(fname=TRAIN_URL.split('/')[-1], 
@@ -35,7 +42,6 @@ def main(argv):
 
     def train_input_fn(features, labels, batch_size):
         dataset = tf.data.Dataset.from_tensor_slices((dict(features), labels))
-        
         dataset = dataset.shuffle(buffer_size=1000).repeat(count=None).batch(batch_size)
         return dataset.make_one_shot_iterator().get_next()
 
@@ -63,7 +69,9 @@ def main(argv):
     classifier = tf.estimator.DNNClassifier(
         feature_columns=my_feature_columns,
         hidden_units=[10,10],
-        n_classes=3)
+        n_classes=3,
+        model_dir='models/premade_estimator',
+        config=my_checkpointing_config)
 
     classifier.train(
         input_fn=lambda:train_input_fn(train_feature, train_label, args.batch_size),
